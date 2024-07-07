@@ -128,7 +128,7 @@ frame = st.data_editor(
         "year": st.column_config.NumberColumn(label="Year", format="%d"),
         "country": st.column_config.TextColumn(label="Country"),
         "series": st.column_config.TextColumn(label="Series"),
-        "value": st.column_config.NumberColumn(label="Value", format="%d"),
+        "value": st.column_config.NumberColumn(label="Value", format="%.2f"),
         "id": st.column_config.TextColumn(label="ID"),
         "image": st.column_config.ImageColumn(label="Image"),
         "feature": st.column_config.TextColumn(label="Feature"),
