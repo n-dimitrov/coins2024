@@ -89,34 +89,59 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-st.title('EuroCoins Admin Page')
 
-# Load cc.csv
-df = pd.read_csv('catalog.csv')
+history_df = pd.read_csv('history.csv')
+history_df['date'] = pd.to_datetime(history_df['date'], format='%Y-%m-%d %H:%M:%S')
 
-countries = df['country'].unique()
-countries = sorted(countries)
-selected_countries = st.selectbox(
-    'Countries',
-    countries,
-    index=None
-)
+catalog_df = pd.read_csv('catalog.csv')
+catalog_df['year'] = catalog_df['year'].astype(int)
 
-years = df['year'].unique()
-years = sorted(years)
-selected_years = st.selectbox(
-    'Years',
-    years,
-    index=None
-)
+df = pd.DataFrame(columns=["name", "type", "year", "country", "series", "value", "id", "image", "date"])
+df['year'] = df['year'].astype(int)
 
-series = df['series'].unique()
-series = sorted(series)
-selected_series = st.selectbox(
-    'Series',
-    series,
-    index=None
-)
+# iterate over the history data
+newrows = []
+for index, row in history_df.iterrows():
+    name = row['name']
+    id = row['id']
+    date = row['date']
+
+    type = ""
+    year = 0
+    country = ""
+    series = ""
+    value = ""
+    image = ""
+
+    # find the coin in the catalog by id
+    coin = catalog_df[catalog_df['id'] == id]
+    if not coin.empty:
+        type = coin['type'].values[0]
+        year = coin['year'].values[0]
+        country = coin['country'].values[0]
+        series = coin['series'].values[0]
+        value = coin['value'].values[0]
+        image = coin['image'].values[0]
+    else:
+        print("Coin not found in catalog: " + id)
+    
+    row = {
+        "name": name,
+        "type": type,
+        "year": year,
+        "country": country,
+        "series": series,
+        "value": value,
+        "id": id,
+        "image": image,
+        "date": date
+    }
+    newrows.append(row)
+
+new_rows_df = pd.DataFrame(newrows)
+df = pd.concat([df, new_rows_df], ignore_index=True)
+
+print(df)
 
 f_df = filter_dataframe(df)
 
@@ -124,19 +149,30 @@ frame = st.data_editor(
     f_df,
     hide_index=True,
     column_config={
+        "name": st.column_config.TextColumn(label="Name"),
         "type": st.column_config.TextColumn(label="Type"),
-        "year": st.column_config.NumberColumn(label="Year", format="%d"),
+        "year": st.column_config.NumberColumn(label="Year", format="%d", min_value=1999, max_value=2024, step=1),
         "country": st.column_config.TextColumn(label="Country"),
         "series": st.column_config.TextColumn(label="Series"),
         "value": st.column_config.NumberColumn(label="Value", format="%.2f"),
         "id": st.column_config.TextColumn(label="ID"),
         "image": st.column_config.ImageColumn(label="Image"),
-        "feature": st.column_config.TextColumn(label="Feature"),
-        "volume": st.column_config.TextColumn(label="Volume")
+        "date": st.column_config.DatetimeColumn(label="Date"),
     },
-    disabled=[],
-    column_order=('type', 'year', 'country', 'series', 'value', 'id', 'image', 'feature', 'volume'),
+    disabled=['id'],
+    column_order=('name', 'type', 'year', 'country', 'series', 'value', 'image', 'date'),
     # width=1000,
     )
 
-st.write('Coins:', len(f_df))
+s_coins = f_df['id'].unique()
+s_coins = sorted(s_coins)
+
+s_countries = f_df['country'].unique()
+s_countries = sorted(s_countries)
+
+s_series = f_df['series'].unique()
+s_series = sorted(s_series)
+
+st.write("Total: ", len(f_df), "Coins: ", len(s_coins), " Countries: ", len(s_countries), " Series: ", len(s_series))
+
+
