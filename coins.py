@@ -4,15 +4,15 @@ from itertools import islice
 import coinsutils as cu
 
 def save_history():
-    print("Saving history")
+    # print("Saving history")
     history_df = st.session_state.history_df
     history_df.to_csv('.cache/history.csv', index=False)
     cu.upload_file_to_s3('.cache/history.csv', 'history.csv')
 
 def add_coin(coin_id, name, date=None):
-    print("Add coin to history: ", name, coin_id)
     if (date is None):
         date = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+    print("Add coin to history: ", name, coin_id, date)
     new_row = {'name': name,'id': coin_id, 'date':date}
     new_df = pd.DataFrame([new_row])
 
