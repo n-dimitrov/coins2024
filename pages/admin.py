@@ -1,5 +1,8 @@
 import streamlit as st
 import pandas as pd
+import os
+import coinsutils as cu
+
 from pandas.api.types import (
     is_categorical_dtype,
     is_datetime64_any_dtype,
@@ -14,15 +17,6 @@ st.set_page_config(
 )
 
 def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Adds a UI on top of a dataframe to let viewers filter columns
-
-    Args:
-        df (pd.DataFrame): Original dataframe
-
-    Returns:
-        pd.DataFrame: Filtered dataframe
-    """
     modify = st.checkbox("Add filters")
 
     if not modify:
@@ -89,16 +83,22 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+def clear_cache():
+    if os.path.exists(".cache/catalog.csv"):
+        os.remove(".cache/catalog.csv")
+    if os.path.exists(".cache/history.csv"):
+        os.remove(".cache/history.csv")
+
 st.title('EuroCoins Admin Page')
 
-# Load cc.csv
-df = pd.read_csv('catalog.csv')
+st.subheader('Catalog')
 
+catalog_df = cu.load_catalog()
+history_df = cu.load_history()
 
-f_df = filter_dataframe(df)
-
+f_catalog_df = filter_dataframe(catalog_df)
 frame = st.data_editor(
-    f_df,
+    f_catalog_df,
     hide_index=True,
     column_config={
         "type": st.column_config.TextColumn(label="Type"),
@@ -116,12 +116,36 @@ frame = st.data_editor(
     # width=1000,
     )
 
-countries = f_df['country'].unique()
+countries = f_catalog_df['country'].unique()
 countries = sorted(countries)
-series = f_df['series'].unique()
+series = f_catalog_df['series'].unique()
 series = sorted(series)
+st.write('Coins:', len(f_catalog_df), ' Countries:', len(countries), '  Series:', len(series))
 
-st.write('Coins:', len(f_df), ' Countries:', len(countries), '  Series:', len(series))
 
-print(countries)
-print(series)
+st.subheader('History')
+
+names_filter = st.checkbox("By name")
+names = history_df['name'].unique()
+n = st.selectbox("Name", names)
+if names_filter:
+    history_df = history_df[history_df['name'] == n]
+
+ff = st.data_editor(
+    history_df,
+    hide_index=True,
+    column_config={
+        "name": st.column_config.TextColumn(label="Name"),
+        "id": st.column_config.TextColumn(label="ID")
+    },
+    disabled=[],
+    column_order=('name', 'id', 'date'),
+    # width=1000,
+    )
+
+st.write('History:', len(history_df))
+
+st.subheader('Cache')
+
+st.button('Clear cache', on_click=clear_cache)
+

@@ -14,15 +14,6 @@ st.set_page_config(
 )
 
 def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Adds a UI on top of a dataframe to let viewers filter columns
-
-    Args:
-        df (pd.DataFrame): Original dataframe
-
-    Returns:
-        pd.DataFrame: Filtered dataframe
-    """
     modify = st.checkbox("Add filters")
 
     if not modify:
@@ -90,7 +81,7 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-history_df = pd.read_csv('history.csv')
+history_df = pd.read_csv('.cache/history.csv')
 history_df['date'] = pd.to_datetime(history_df['date'], format='%Y-%m-%d %H:%M:%S')
 
 catalog_df = pd.read_csv('catalog.csv')
@@ -140,8 +131,6 @@ for index, row in history_df.iterrows():
 
 new_rows_df = pd.DataFrame(newrows)
 df = pd.concat([df, new_rows_df], ignore_index=True)
-
-print(df)
 
 f_df = filter_dataframe(df)
 
