@@ -81,7 +81,7 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-history_df = pd.read_csv('history.csv')
+history_df = pd.read_csv('.cache/history.csv')
 history_df['date'] = pd.to_datetime(history_df['date'], format='%Y-%m-%d %H:%M:%S')
 
 catalog_df = pd.read_csv('catalog.csv')
