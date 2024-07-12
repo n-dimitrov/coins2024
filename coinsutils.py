@@ -165,7 +165,6 @@ s3 = boto3.client('s3')
 bucket_name = "coins2024"
 
 def upload_file_to_s3(file_name, object_name=None):
-    """Upload a file to an S3 bucket"""
     if object_name is None:
         object_name = file_name
 
@@ -178,34 +177,20 @@ def upload_file_to_s3(file_name, object_name=None):
         print("Credentials not available")
 
 def get_file_from_s3(s3_key, local_cache_dir='.cache'):
-    """
-    Download a file from S3 with local caching.
-    """
-    # Ensure the local cache directory exists
     os.makedirs(local_cache_dir, exist_ok=True)
-    
-    # Generate a hash of the S3 key to use as the local filename
-    # hashed_key = hashlib.md5(s3_key.encode()).hexdigest()
     local_file_path = os.path.join(local_cache_dir, s3_key)
-    
-    # Check if the file is already cached
     if os.path.exists(local_file_path):
-        print(f"File is already cached: {local_file_path}")
+        # print(f"File is already cached: {local_file_path}")
         return local_file_path
     
-    # Download the file from S3
     print(f"Downloading {s3_key} from bucket {bucket_name}")
     s3.download_file(bucket_name, s3_key, local_file_path)
-    
-    print(f"File downloaded and cached at: {local_file_path}")
     return local_file_path
 
 def download_file_from_s3(object_name, file_name=None, local_cache_dir='.cache'):
-    """Download a file from an S3 bucket"""
     if file_name is None:
         file_name = object_name
 
-    # create local cache directory
     os.makedirs(local_cache_dir, exist_ok=True)
     local_file_path = os.path.join(local_cache_dir, file_name)
 
@@ -219,13 +204,13 @@ def download_file_from_s3(object_name, file_name=None, local_cache_dir='.cache')
     return local_file_path
 
 def load_catalog():
-    print("Loading catalog")
+    # print("Loading catalog")
     file = get_file_from_s3('catalog.csv')
     catalog_df = pd.read_csv(file)
     return catalog_df
 
 def load_history():
-    print("Loading history")
+    # print("Loading history")
     file = get_file_from_s3('history.csv')
     history_df = pd.read_csv(file)
     return history_df
