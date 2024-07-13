@@ -84,17 +84,14 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def clear_cache():
-    if os.path.exists(".cache/catalog.csv"):
-        os.remove(".cache/catalog.csv")
-    if os.path.exists(".cache/history.csv"):
-        os.remove(".cache/history.csv")
+    cu.clear_cache()
 
 st.title('EuroCoins Admin Page')
 
 st.subheader('Catalog')
 
-catalog_df = cu.load_catalog()
-history_df = cu.load_history()
+catalog_df = cu.load_catalog(force=False)
+history_df = cu.load_history(force=False)
 
 f_catalog_df = filter_dataframe(catalog_df)
 frame = st.data_editor(

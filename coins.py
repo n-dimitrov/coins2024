@@ -3,11 +3,8 @@ import pandas as pd
 from itertools import islice
 import coinsutils as cu
 
-def save_history():
-    # print("Saving history")
-    history_df = st.session_state.history_df
-    history_df.to_csv('.cache/history.csv', index=False)
-    cu.upload_file_to_s3('.cache/history.csv', 'history.csv')
+def save_history(history_df):
+    cu.save_history(history_df)
 
 def add_coin(coin_id, name, date=None):
     if (date is None):
@@ -19,14 +16,14 @@ def add_coin(coin_id, name, date=None):
     history_df = st.session_state.history_df
     history_df = pd.concat([history_df, new_df], ignore_index=True)
     st.session_state.history_df = history_df
-    save_history()
+    save_history(history_df)
 
 def remove_coin(coin_id, name):
     print("Remove coin from history: ", name, coin_id)
     df = st.session_state.history_df
     df = df[~((df['name'] == name) & (df['id'] == coin_id))]
     st.session_state.history_df = df
-    save_history()
+    save_history(df)
 
 def init_coins():
     if 'catalog_df' not in st.session_state:
