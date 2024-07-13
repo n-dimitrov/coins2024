@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import boto3
 from botocore.exceptions import NoCredentialsError
+import streamlit as st
 
 flags = {
     "Andorra": ":flag-ad:",
@@ -161,8 +162,28 @@ series_names_info = {
     "CC-2023": "Commemorative 2023"
 }
 
-s3 = boto3.client('s3')
-bucket_name = "coins2024"
+CACHE_DIR = '.cache'
+CATALOG_FILENAME = 'catalog.csv'
+HISTORY_FILENAME = 'history.csv'
+
+# from secrets.toml
+aws_access_key_id = st.secrets['s3']['AWS_ACCESS_KEY_ID']
+aws_secret_access_key = st.secrets['s3']['AWS_SECRET_ACCESS_KEY']
+aws_region = st.secrets['s3']['AWS_DEFAULT_REGION']
+bucket_name = st.secrets['s3']['AWS_BUCKET_NAME']
+
+print(f"Connecting to S3 bucket {bucket_name}")
+
+s3 = boto3.client('s3', region_name=aws_region, aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
+
+def clear_cache():
+    print("Clearing cache")
+    f = os.path.join(CACHE_DIR, CATALOG_FILENAME)
+    if os.path.exists(f):
+        os.remove(f)
+    f = os.path.join(CACHE_DIR, HISTORY_FILENAME)
+    if os.path.exists(f):
+        os.remove(f)
 
 def upload_file_to_s3(file_name, object_name=None):
     if object_name is None:
@@ -176,13 +197,16 @@ def upload_file_to_s3(file_name, object_name=None):
     except NoCredentialsError:
         print("Credentials not available")
 
-def get_file_from_s3(s3_key, local_cache_dir='.cache'):
+def load_file(s3_key, local_cache_dir=CACHE_DIR, force=False):
+    # print(f"Checking if {s3_key} ", local_cache_dir, " ", force)
     os.makedirs(local_cache_dir, exist_ok=True)
     local_file_path = os.path.join(local_cache_dir, s3_key)
-    if os.path.exists(local_file_path):
-        # print(f"File is already cached: {local_file_path}")
-        return local_file_path
-    
+
+    # check if file is already cached
+    if not force:
+        if os.path.exists(local_file_path):
+            return local_file_path
+        
     print(f"Downloading {s3_key} from bucket {bucket_name}")
     s3.download_file(bucket_name, s3_key, local_file_path)
     return local_file_path
@@ -203,14 +227,16 @@ def download_file_from_s3(object_name, file_name=None, local_cache_dir='.cache')
         print("Credentials not available")
     return local_file_path
 
-def load_catalog():
-    # print("Loading catalog")
-    file = get_file_from_s3('catalog.csv')
+def load_catalog(force=False):
+    file = load_file(CATALOG_FILENAME, force=force)
     catalog_df = pd.read_csv(file)
     return catalog_df
 
-def load_history():
-    # print("Loading history")
-    file = get_file_from_s3('history.csv')
+def load_history(force=False):
+    file = load_file(HISTORY_FILENAME, force=force)
     history_df = pd.read_csv(file)
     return history_df
+
+def save_history(history_df):
+    history_df.to_csv(os.path.join(CACHE_DIR, HISTORY_FILENAME), index=False)
+    upload_file_to_s3(os.path.join(CACHE_DIR, HISTORY_FILENAME), HISTORY_FILENAME)
