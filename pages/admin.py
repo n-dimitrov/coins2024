@@ -28,7 +28,7 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     for col in df.columns:
         if is_object_dtype(df[col]):
             try:
-                df[col] = pd.to_datetime(df[col])
+                df[col] = pd.to_datetime(df[col], format='%Y-%m-%d %H:%M:%S')
             except Exception:
                 pass
 
@@ -43,11 +43,11 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             left, right = st.columns((1, 20))
             left.write("↳")
             # Treat columns with < 10 unique values as categorical
-            if is_categorical_dtype(df[column]) or df[column].nunique() < 10:
+            if isinstance(df[column], pd.CategoricalDtype) or df[column].nunique() < 30:
                 user_cat_input = right.multiselect(
                     f"Values for {column}",
                     df[column].unique(),
-                    default=list(df[column].unique()),
+                    # default=list(df[column].unique())
                 )
                 df = df[df[column].isin(user_cat_input)]
             elif is_numeric_dtype(df[column]):
@@ -79,7 +79,7 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
                     f"Substring or regex in {column}",
                 )
                 if user_text_input:
-                    df = df[df[column].str.contains(user_text_input)]
+                    df = df[df[column].str.contains(user_text_input, case=False, na=False)]
 
     return df
 
@@ -92,6 +92,11 @@ st.subheader('Catalog')
 
 catalog_df = cu.load_catalog(force=False)
 history_df = cu.load_history(force=False)
+
+# fillna feature column
+catalog_df['feature'] = catalog_df['feature'].fillna('n/a')
+catalog_df['volume'] = catalog_df['volume'].fillna('n/a')
+
 
 f_catalog_df = filter_dataframe(catalog_df)
 frame = st.data_editor(
@@ -124,6 +129,9 @@ st.subheader('History')
 
 names_filter = st.checkbox("By name")
 names = history_df['name'].unique()
+history_df['date'] = pd.to_datetime(history_df['date'], errors='coerce')
+history_df['date_only'] = history_df['date'].dt.date
+
 n = st.selectbox("Name", names)
 if names_filter:
     history_df = history_df[history_df['name'] == n]
@@ -136,11 +144,17 @@ ff = st.data_editor(
         "id": st.column_config.TextColumn(label="ID")
     },
     disabled=[],
-    column_order=('name', 'id', 'date'),
+    column_order=('name', 'id', 'date', 'date_only'),
     # width=1000,
     )
 
 st.write('History:', len(history_df))
+
+st.subheader('History by dates')   
+grouped_df = history_df.groupby(['date_only', 'name']).agg({
+    'id': lambda x: list(x)  # Aggregate ids into a list
+}).reset_index()
+st.write(grouped_df)
 
 st.subheader('Cache')
 

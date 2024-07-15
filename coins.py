@@ -25,6 +25,15 @@ def remove_coin(coin_id, name):
     st.session_state.history_df = df
     save_history(df)
 
+def get_last_added():
+    history_df = st.session_state.history_df
+    last_added_df = history_df.groupby(['date_only', 'name']).agg({
+            'id': lambda x: list(x)  
+    }).reset_index()
+    last_added_df = last_added_df.sort_values(by=['date_only', 'name'], ascending=False)
+    last_added = last_added_df.head(3)
+    return last_added
+
 def init_coins():
     if 'catalog_df' not in st.session_state:
          st.session_state.catalog_df = cu.load_catalog()
@@ -35,14 +44,19 @@ def init_coins():
     history_df = st.session_state.history_df
 
     history_sorted_df = history_df.sort_values(by=['name','date'], ascending=True)
-    history_df_grouped = history_sorted_df.groupby('id').agg({'name': lambda x: list(x)}).reset_index()
+    history_df_grouped_id = history_sorted_df.groupby('id').agg({'name': lambda x: list(x)}).reset_index()
+
+    history_df['date'] = pd.to_datetime(history_df['date'], errors='coerce')
+    history_df['date_only'] = history_df['date'].dt.date
+    
 
     coins_df = pd.DataFrame()
-    coins_df = pd.merge(catalog_df, history_df_grouped, on='id', how='outer')
+    coins_df = pd.merge(catalog_df, history_df_grouped_id, on='id', how='outer')
     coins_df['names'] = coins_df['name'].apply(lambda x: x if isinstance(x, list) else [])
     coins_df['owners'] = coins_df['names'].apply(lambda x: len(x) if isinstance(x, list) else 0)
     coins_df.drop(columns=['name'], inplace=True)
-
+    coins_df['feature'] = coins_df['feature'].fillna('')
+    coins_df['volume'] = coins_df['volume'].fillna('')
     users_list = history_df['name'].unique()
 
     st.session_state.coins_df = coins_df
@@ -172,8 +186,68 @@ with col1:
         series = st.selectbox("Series", series_list)
         if series_filter:
             coins_df = coins_df[coins_df['series'] == series]
+
+    with st.container(border=True):
+        info_filter = st.text_input("Details")
+        if info_filter != "":
+            coins_df = coins_df[coins_df['feature'].str.contains(info_filter, case=False, na=False)]
+
     
 with col2:
+    with st.expander("Statistics"):
+        # st.write("Coins:", len(coins_df), " Users:", total_users)
+        # st.write("Regular:", len(coins_df[coins_df['type'] == 'RE']), " Commemorative:", len(coins_df[coins_df['type'] == 'CC']))
+        # st.write("Countries:", len(countries_list), " Series:", len(series_list))
+
+        st.subheader("Last added")
+        catalog_df = st.session_state.catalog_df
+        last_added_df = get_last_added()
+
+        for row in last_added_df.itertuples():
+            d = row.date_only
+            owner = row.name
+            ids = row.id
+            date = d.strftime('%d %B %Y')
+            data = {
+                'country': [],
+                'series': [],
+                'year': [],
+                'image': [],
+                'value': [],
+                'type': []
+            }
+            st.write(f"#### {owner} @ {date}")
+
+            for i in ids:
+                coin = catalog_df[catalog_df['id'] == i]
+                data['country'].append(coin['country'].values[0])
+                data['series'].append(coin['series'].values[0])
+                data['year'].append(coin['year'].values[0])
+                data['value'].append(coin['value'].values[0])
+                data['type'].append(coin['type'].values[0])
+                data['image'].append(coin['image'].values[0])
+
+            dff = pd.DataFrame(data)
+            frame = st.data_editor(
+                dff,
+                key=f"history_{date}_{owner}",
+                hide_index=True,
+                column_config={
+                    "type": st.column_config.TextColumn(label="Type"),
+                    "year": st.column_config.NumberColumn(label="Year", format="%d"),
+                    "country": st.column_config.TextColumn(label="Country"),
+                    "series": st.column_config.TextColumn(label="Series"),
+                    "value": st.column_config.NumberColumn(label="Value", format="%.2f"),
+                    "image": st.column_config.ImageColumn(label="Image")
+                },
+                disabled=[],
+                column_order=('type', 'year', 'country', 'series', 'value', 'image'),
+                # width=1000,
+                )
+
+        st.page_link('pages/history.py', label=':calendar: Full History')
+
+
     sorted_df = coins_df.sort_values(by=['country', 'value'])
 
     grouped = sorted_df.groupby('series')
