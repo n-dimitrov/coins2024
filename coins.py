@@ -3,6 +3,19 @@ import pandas as pd
 from itertools import islice
 import coinsutils as cu
 
+selected_user = None
+selected_type = None
+selected_country = None
+selected_series = None
+if 'user' in st.query_params:
+    selected_user = st.query_params['user']
+if 'type' in st.query_params:
+    selected_type = st.query_params['type']
+if 'country' in st.query_params:
+    selected_country = st.query_params['country']
+if 'series' in st.query_params:
+    selected_series = st.query_params['series']
+
 def save_history(history_df):
     cu.save_history(history_df)
 
@@ -202,6 +215,7 @@ with st.spinner("Loading..."):
 coins_df = st.session_state.coins_df
 
 users_list = st.session_state.users_list
+users_list = sorted(users_list)
 total_users = len(users_list)
 
 col1, col2 = st.columns([1, 6])
@@ -209,39 +223,63 @@ col1, col2 = st.columns([1, 6])
 with col1:
     st.write("Filters")
 
+    # user filter
     with st.container(border=True):
-        user_filter = st.checkbox("By user")
-        current_user = st.selectbox("User", users_list)
+        user_filter_selected_index = users_list.index(selected_user) if selected_user in users_list else 0
+        user_filter_selected = selected_user in users_list
+
+        user_filter = st.checkbox("By user", value=user_filter_selected)
+        current_user = st.selectbox("User", users_list, index=user_filter_selected_index)
+
         if not user_filter:
             current_user = None
         
         user_filter = st.selectbox("Coins", ["All", "Found", "Missing"])
 
+    # type filter
     with st.container(border=True):
-        selected_regular = st.checkbox("Regular", value=False)
-        selected_commemorative = st.checkbox("Commemorative", value=False)
-        if selected_regular:
-            coins_df = coins_df[coins_df['type'] == 'RE']
-        if selected_commemorative:
-            coins_df = coins_df[coins_df['type'] == 'CC']
+        REGULAR = "RE"
+        COMMEMORATIVE = "CC"
+        TYPE_MAPPING = {0: REGULAR, 1: COMMEMORATIVE}
+        UI_TYPE_MAPPING = {"Regular": REGULAR, "Commemorative": COMMEMORATIVE}
 
+        selected_type_index = 1 if selected_type == COMMEMORATIVE else 0
+        type_filter_selected = selected_type in TYPE_MAPPING.values()
+        
+        type_filter = st.checkbox("By type", value=type_filter_selected)
+        selected_ui_type = st.selectbox("Type", list(UI_TYPE_MAPPING.keys()), index=selected_type_index)
+
+        if type_filter:
+            coins_df = coins_df[coins_df['type'] == UI_TYPE_MAPPING[selected_ui_type]]
+
+
+    # country filter
     with st.container(border=True):
-        country_filter = st.checkbox("By country")
-        countries_list = coins_df['country'].unique()
-        countries_list = sorted(countries_list)
-        country = st.selectbox("Country", countries_list)
+        countries_list = sorted(coins_df['country'].unique())
+
+        selected_country_index = countries_list.index(selected_country) if selected_country in countries_list else 0
+        country_filter_selected = selected_country in countries_list
+
+        country_filter = st.checkbox("By country", value=country_filter_selected)
+        country = st.selectbox("Country", countries_list, index=selected_country_index)
+        
         if country_filter:
             coins_df = coins_df[coins_df['country'] == country]   
 
+    # series filter
     with st.container(border=True):
-        series_filter = st.checkbox("By series", value=False)
-        series_list = coins_df['series'].unique()
-        series_list = sorted(series_list)
-
-        series = st.selectbox("Series", series_list)
+        series_list = sorted(coins_df['series'].unique())
+        
+        selected_series_index = series_list.index(selected_series) if selected_series in series_list else 0
+        series_filter_selected = selected_series in series_list
+        
+        series_filter = st.checkbox("By series", value=series_filter_selected)
+        series = st.selectbox("Series", series_list, index=selected_series_index)
+        
         if series_filter:
             coins_df = coins_df[coins_df['series'] == series]
 
+    # details filter
     with st.container(border=True):
         info_filter = st.text_input("Details")
         if info_filter != "":
@@ -274,10 +312,6 @@ with col2:
         total_user_count = total_users
 
         rows = []
-        # total stats
-        # data = generate_stats_data(coins_df, ':flag-eu: Total')
-        # rows.append(data)
-
         # group by country stats
         grouped_country = coins_df.groupby('country')
         dfs = {country: group.reset_index(drop=True) for country, group in grouped_country}
