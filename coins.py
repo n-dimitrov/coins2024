@@ -121,23 +121,78 @@ def display_coin_card(coin, current_user):
 ###
 # Series container
 ###
-def series_head(series, name, series_coins_count, own_count):
+def series_head(series, name, series_coins_count, found_count):
     series_name = cu.series_names_info.get(series, series)
     st.subheader(f"{series_name}")
         
-    series_progress = own_count / series_coins_count
+    series_progress = found_count / series_coins_count
     with st.container(border=True):
         c1, c2 = st.columns([1,8])
         c2.progress(series_progress)
-        c1.write(f"{own_count} / {series_coins_count}")
+        c1.write(f"{found_count} / {series_coins_count}")
 
-st.markdown("""
-<style>
-.stProgress .st-e4 {
-    background-color: green;
-}
-</style>
-""", unsafe_allow_html=True)
+def generate_stats_data(df, name):
+    total_count = len(df)
+    total_re = len(df[df['type'] == 'RE'])
+    total_cc = len(df[df['type'] == 'CC'])
+
+    total_found = df['found'].sum()
+    total_percent = total_found / total_count if total_count != 0 else 0 
+    total_re_found = len(df[(df['type'] == 'RE') & (df['found'] == 1)])
+    total_re_percent = total_re_found / total_re if total_re != 0 else 0
+    total_cc_found = len(df[(df['type'] == 'CC') & (df['found'] == 1)])
+    total_cc_percent = total_cc_found / total_cc if total_cc != 0 else 0
+
+    return {
+        'name': name,
+        'regular_found': total_re_found,
+        'regular_percent': total_re_percent,
+        'regular': total_re,
+        'cc_found': total_cc_found,
+        'cc_percent': total_cc_percent,
+        'cc': total_cc,
+        'total_found': int(total_found),  
+        'total_percent': total_percent,
+        'total': total_count,
+    }
+
+###
+# Country Stats card
+###
+def country_stats_card(data):
+    name = data.name
+    total_found = data.total_found
+    total = data.total
+    total_percent = data.total_percent  
+    regular_found = data.regular_found
+    regular = data.regular
+    regular_percent = data.regular_percent
+    cc_found = data.cc_found
+    cc = data.cc
+    cc_percent = data.cc_percent
+
+    with st.container(border=True):
+        st.write(f"### {name}")
+    
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            with st.container(border=True):
+                st.write("#### Regular")
+                st.progress(regular_percent, "Regular")
+                st.write(f"{regular_found} / {regular}")
+
+        with col2:
+            with st.container(border=True):
+                st.write("#### Commemorative")
+                st.progress(cc_percent, "Commemorative")
+                st.write(f"{cc_found} / {cc}")
+
+        with col3:
+            with st.container(border=True):
+                st.write("#### All")
+                st.progress(total_percent, "All")
+                st.write(f"{total_found} / {total}")
 
 st.header("EuroCoins Catalog")
 
@@ -163,7 +218,7 @@ with col1:
         user_filter = st.selectbox("Coins", ["All", "Found", "Missing"])
 
     with st.container(border=True):
-        selected_regular = st.checkbox("Regular", value=True)
+        selected_regular = st.checkbox("Regular", value=False)
         selected_commemorative = st.checkbox("Commemorative", value=False)
         if selected_regular:
             coins_df = coins_df[coins_df['type'] == 'RE']
@@ -194,12 +249,54 @@ with col1:
 
     
 with col2:
-    with st.expander("Statistics"):
-        # st.write("Coins:", len(coins_df), " Users:", total_users)
-        # st.write("Regular:", len(coins_df[coins_df['type'] == 'RE']), " Commemorative:", len(coins_df[coins_df['type'] == 'CC']))
-        # st.write("Countries:", len(countries_list), " Series:", len(series_list))
+    coins_df = coins_df.sort_values(by=['country', 'value'])
+    coins_df['own'] = coins_df['names'].apply(lambda x: 1 if current_user in x else 0)
+    if current_user:
+        coins_df['found'] = coins_df['own']
+    else:
+        coins_df['found'] = coins_df['names'].apply(lambda x: 1 if len(x) > 0 else 0)
 
-        st.subheader("Last added")
+    if user_filter == "Found":
+        coins_df = coins_df[coins_df['found'] == 1]
+    elif user_filter == "Missing":
+        coins_df = coins_df[coins_df['found'] == 0]
+
+
+    # total stats
+    total_stats_data = generate_stats_data(coins_df, ':flag-eu: Coins')
+    sssdf = pd.DataFrame([total_stats_data])
+    for data in sssdf.itertuples():
+        country_stats_card(data)    
+
+    ## statistics
+    with st.expander(":bar_chart: Statistics"):
+        st.subheader("Countries statistics")
+        total_user_count = total_users
+
+        rows = []
+        # total stats
+        # data = generate_stats_data(coins_df, ':flag-eu: Total')
+        # rows.append(data)
+
+        # group by country stats
+        grouped_country = coins_df.groupby('country')
+        dfs = {country: group.reset_index(drop=True) for country, group in grouped_country}
+
+        for country, df_group in dfs.items():
+            flag_emoji = cu.flags.get(country, "")
+            name = f"{flag_emoji} {country}"
+            data = generate_stats_data(df_group, name)
+            rows.append(data)
+
+        stats_df = pd.DataFrame(rows)
+        # st.write(stats_df)
+
+        for data in stats_df.itertuples():
+            country_stats_card(data)
+
+    ## last added
+    with st.expander(":calendar: Last added"):
+        st.subheader("History")
         catalog_df = st.session_state.catalog_df
         last_added_df = get_last_added()
 
@@ -247,32 +344,17 @@ with col2:
 
         st.page_link('pages/history.py', label=':calendar: Full History')
 
-
-    sorted_df = coins_df.sort_values(by=['country', 'value'])
-
-    grouped = sorted_df.groupby('series')
-    dfs = {series: group.reset_index(drop=True) for series, group in grouped}
-
-    name_to_check = "-"
-    if current_user:
-        name_to_check = current_user
+    # gouped by series
+    grouped_series = coins_df.groupby('series')
+    dfs = {series: group.reset_index(drop=True) for series, group in grouped_series}
 
     for series, df_group in dfs.items():
         with st.container(border=True):
-
             series_coins_count = len(df_group)
             df_group = df_group.sort_values(by=['country', 'value'])
-            df_group['own'] = df_group['names'].apply(lambda x: 1 if name_to_check in x else 0)
-
-            if (current_user):
-                if user_filter == "Found":
-                    df_group = df_group[df_group['own'] == 1]
-                elif user_filter == "Missing":
-                    df_group = df_group[df_group['own'] == 0]
-
-            own_count = df_group['own'].sum()
+            found_count = df_group['found'].sum()
             
-            series_head(series, current_user, series_coins_count, own_count)
+            series_head(series, current_user, series_coins_count, found_count)
   
             n_cols = 8    
             for row in batched(df_group.itertuples(), n_cols):
