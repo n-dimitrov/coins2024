@@ -131,18 +131,11 @@ def display_coin_card(coin, current_user):
                     label = "Del :red[:heavy_minus_sign:]"
                     st.button(label, key=f"remove_{coin.id}", on_click=remove_coin, args=[coin.id, current_user])
 
-###
-# Series container
-###
-def series_head(series, name, series_coins_count, found_count):
-    series_name = cu.series_names_info.get(series, series)
-    st.subheader(f"{series_name}")
-        
-    series_progress = found_count / series_coins_count
-    with st.container(border=True):
-        c1, c2 = st.columns([1,8])
-        c2.progress(series_progress)
-        c1.write(f"{found_count} / {series_coins_count}")
+# ###
+# # Series container
+# ###
+# def series_head(series, name, series_coins_count, found_count):
+
 
 def generate_stats_data(df, name):
     total_count = len(df)
@@ -392,12 +385,19 @@ with col2:
     dfs = {series: group.reset_index(drop=True) for series, group in grouped_series}
 
     for series, df_group in dfs.items():
-        with st.container(border=True):
-            series_coins_count = len(df_group)
-            df_group = df_group.sort_values(by=['country', 'value'])
-            found_count = df_group['found'].sum()
-            
-            series_head(series, current_user, series_coins_count, found_count)
+        series_coins_count = len(df_group)
+        df_group = df_group.sort_values(by=['country', 'value'])
+        found_count = df_group['found'].sum()
+        series_name = cu.series_names_info.get(series, series)
+        series_procentage = found_count / series_coins_count
+
+        series_title = get_stats_title(series_name, found_count, series_coins_count)
+        with st.container(border=True):    
+            st.markdown(series_title)
+            with st.container(border=True):
+                c1, c2 = st.columns([1,8])
+                c2.progress(series_procentage)
+                c1.write(f"{found_count} / {series_coins_count}")
   
             n_cols = 8    
             for row in batched(df_group.itertuples(), n_cols):
