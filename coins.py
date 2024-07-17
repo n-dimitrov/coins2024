@@ -70,7 +70,7 @@ def init_coins():
     coins_df.drop(columns=['name'], inplace=True)
     coins_df['feature'] = coins_df['feature'].fillna('')
     coins_df['volume'] = coins_df['volume'].fillna('')
-    users_list = history_df['name'].unique()
+    users_list = sorted(history_df['name'].unique())
 
     st.session_state.coins_df = coins_df
     st.session_state.users_list = users_list
@@ -215,15 +215,12 @@ with st.spinner("Loading..."):
     init_coins()
 
 coins_df = st.session_state.coins_df
-
 users_list = st.session_state.users_list
-users_list = sorted(users_list)
 total_users = len(users_list)
 
-col1, col2 = st.columns([1, 6])
-
-with col1:
-    st.write("Filters")
+### sidebar filters
+with st.sidebar:
+    st.header("Filters")
 
     # user filter
     with st.container(border=True):
@@ -288,121 +285,121 @@ with col1:
             coins_df = coins_df[coins_df['feature'].str.contains(info_filter, case=False, na=False)]
 
     
-with col2:
-    coins_df = coins_df.sort_values(by=['country', 'value'])
-    coins_df['own'] = coins_df['names'].apply(lambda x: 1 if current_user in x else 0)
-    if current_user:
-        coins_df['found'] = coins_df['own']
-    else:
-        coins_df['found'] = coins_df['names'].apply(lambda x: 1 if len(x) > 0 else 0)
+## main content
 
-    if user_filter == "Found":
-        coins_df = coins_df[coins_df['found'] == 1]
-    elif user_filter == "Missing":
-        coins_df = coins_df[coins_df['found'] == 0]
+coins_df = coins_df.sort_values(by=['country', 'value'])
+coins_df['own'] = coins_df['names'].apply(lambda x: 1 if current_user in x else 0)
+if current_user:
+    coins_df['found'] = coins_df['own']
+else:
+    coins_df['found'] = coins_df['names'].apply(lambda x: 1 if len(x) > 0 else 0)
+
+if user_filter == "Found":
+    coins_df = coins_df[coins_df['found'] == 1]
+elif user_filter == "Missing":
+    coins_df = coins_df[coins_df['found'] == 0]
 
 
-    # total stats
-    total_stats_data = generate_stats_data(coins_df, ':flag-eu: Coins')
-    sssdf = pd.DataFrame([total_stats_data])
-    for data in sssdf.itertuples():
-        country_stats_card(data)    
+# total stats
+total_stats_data = generate_stats_data(coins_df, ':flag-eu: Coins')
+sssdf = pd.DataFrame([total_stats_data])
+for data in sssdf.itertuples():
+    country_stats_card(data)    
 
-    ## statistics
-    with st.expander(":bar_chart: Statistics"):
-        st.subheader("Countries statistics")
-        total_user_count = total_users
+## statistics
+with st.expander(":bar_chart: Statistics"):
+    st.subheader("Countries statistics")
+    total_user_count = total_users
 
-        rows = []
-        # group by country stats
-        grouped_country = coins_df.groupby('country')
-        dfs = {country: group.reset_index(drop=True) for country, group in grouped_country}
+    rows = []
+    # group by country stats
+    grouped_country = coins_df.groupby('country')
+    dfs = {country: group.reset_index(drop=True) for country, group in grouped_country}
 
-        for country, df_group in dfs.items():
-            flag_emoji = cu.flags.get(country, "")
-            name = f"{flag_emoji} {country}"
-            data = generate_stats_data(df_group, name)
-            rows.append(data)
+    for country, df_group in dfs.items():
+        flag_emoji = cu.flags.get(country, "")
+        name = f"{flag_emoji} {country}"
+        data = generate_stats_data(df_group, name)
+        rows.append(data)
 
-        stats_df = pd.DataFrame(rows)
-        # st.write(stats_df)
+    stats_df = pd.DataFrame(rows)
+    # st.write(stats_df)
 
-        for data in stats_df.itertuples():
-            country_stats_card(data)
+    for data in stats_df.itertuples():
+        country_stats_card(data)
 
-    ## last added
-    with st.expander(":calendar: Last added"):
-        st.subheader("History")
-        catalog_df = st.session_state.catalog_df
-        last_added_df = get_last_added()
+## last added
+with st.expander(":calendar: Last added"):
+    st.subheader("History")
+    catalog_df = st.session_state.catalog_df
+    last_added_df = get_last_added()
 
-        for row in last_added_df.itertuples():
-            d = row.date_only
-            owner = row.name
-            ids = row.id
-            date = d.strftime('%d %B %Y')
-            data = {
-                'country': [],
-                'series': [],
-                'year': [],
-                'image': [],
-                'value': [],
-                'type': []
-            }
-            st.write(f"#### {owner} @ {date}")
+    for row in last_added_df.itertuples():
+        d = row.date_only
+        owner = row.name
+        ids = row.id
+        date = d.strftime('%d %B %Y')
+        data = {
+            'country': [],
+            'series': [],
+            'year': [],
+            'image': [],
+            'value': [],
+            'type': []
+        }
+        st.write(f"#### {owner} @ {date}")
 
-            for i in ids:
-                coin = catalog_df[catalog_df['id'] == i]
-                data['country'].append(coin['country'].values[0])
-                data['series'].append(coin['series'].values[0])
-                data['year'].append(coin['year'].values[0])
-                data['value'].append(coin['value'].values[0])
-                data['type'].append(coin['type'].values[0])
-                data['image'].append(coin['image'].values[0])
+        for i in ids:
+            coin = catalog_df[catalog_df['id'] == i]
+            data['country'].append(coin['country'].values[0])
+            data['series'].append(coin['series'].values[0])
+            data['year'].append(coin['year'].values[0])
+            data['value'].append(coin['value'].values[0])
+            data['type'].append(coin['type'].values[0])
+            data['image'].append(coin['image'].values[0])
 
-            dff = pd.DataFrame(data)
-            frame = st.data_editor(
-                dff,
-                key=f"history_{date}_{owner}",
-                hide_index=True,
-                column_config={
-                    "type": st.column_config.TextColumn(label="Type"),
-                    "year": st.column_config.NumberColumn(label="Year", format="%d"),
-                    "country": st.column_config.TextColumn(label="Country"),
-                    "series": st.column_config.TextColumn(label="Series"),
-                    "value": st.column_config.NumberColumn(label="Value", format="%.2f"),
-                    "image": st.column_config.ImageColumn(label="Image")
-                },
-                disabled=[],
-                column_order=('type', 'year', 'country', 'series', 'value', 'image'),
-                # width=1000,
-                )
+        dff = pd.DataFrame(data)
+        frame = st.data_editor(
+            dff,
+            key=f"history_{date}_{owner}",
+            hide_index=True,
+            column_config={
+                "type": st.column_config.TextColumn(label="Type"),
+                "year": st.column_config.NumberColumn(label="Year", format="%d"),
+                "country": st.column_config.TextColumn(label="Country"),
+                "series": st.column_config.TextColumn(label="Series"),
+                "value": st.column_config.NumberColumn(label="Value", format="%.2f"),
+                "image": st.column_config.ImageColumn(label="Image")
+            },
+            disabled=[],
+            column_order=('type', 'year', 'country', 'series', 'value', 'image'),
+            # width=1000,
+            )
 
-        st.page_link('pages/history.py', label=':calendar: Full History')
+    st.page_link('pages/history.py', label=':calendar: Full History')
 
-    # gouped by series
-    grouped_series = coins_df.groupby('series')
-    dfs = {series: group.reset_index(drop=True) for series, group in grouped_series}
+# gouped by series
+grouped_series = coins_df.groupby('series')
+dfs = {series: group.reset_index(drop=True) for series, group in grouped_series}
 
-    for series, df_group in dfs.items():
-        series_coins_count = len(df_group)
-        df_group = df_group.sort_values(by=['country', 'value'])
-        found_count = df_group['found'].sum()
-        series_name = cu.series_names_info.get(series, series)
-        series_procentage = found_count / series_coins_count
+for series, df_group in dfs.items():
+    series_coins_count = len(df_group)
+    df_group = df_group.sort_values(by=['country', 'value'])
+    found_count = df_group['found'].sum()
+    series_name = cu.series_names_info.get(series, series)
+    series_procentage = found_count / series_coins_count
 
-        series_title = get_stats_title(series_name, found_count, series_coins_count)
-        with st.container(border=True):    
-            st.markdown(series_title)
-            with st.container(border=True):
-                c1, c2 = st.columns([1,8])
-                c2.progress(series_procentage)
-                c1.write(f"{found_count} / {series_coins_count}")
-  
-            n_cols = 8    
-            for row in batched(df_group.itertuples(), n_cols):
-                cols = st.columns(n_cols)
-                for col, coin in zip(cols, row):
-                        with col:
-                            display_coin_card(coin, current_user) 
- 
+    series_title = get_stats_title(series_name, found_count, series_coins_count)
+    with st.container(border=True):    
+        st.markdown(series_title)
+        with st.container(border=True):
+            c1, c2 = st.columns([1,8])
+            c2.progress(series_procentage)
+            c1.write(f"{found_count} / {series_coins_count}")
+
+        n_cols = 8    
+        for row in batched(df_group.itertuples(), n_cols):
+            cols = st.columns(n_cols)
+            for col, coin in zip(cols, row):
+                    with col:
+                        display_coin_card(coin, current_user) 
