@@ -169,6 +169,12 @@ def generate_stats_data(df, name):
         'total': total_count,
     }
 
+def get_stats_title(name, found, total):
+    if (found == total):
+        return f"#### :white_check_mark: :green[{name}]"
+    else:
+        return f"#### :ballot_box_with_check: :red[{name}]"
+
 ###
 # Country Stats card
 ###
@@ -191,21 +197,24 @@ def country_stats_card(data):
         
         with col1:
             with st.container(border=True):
-                st.write("#### Regular")
-                st.progress(regular_percent, "Regular")
-                st.write(f"{regular_found} / {regular}")
+                title = get_stats_title("Regular", regular_found, regular)
+                st.write(title)
+                progress_title = f"{regular_found} / {regular} ({regular_percent:.2%})"
+                st.progress(regular_percent, text = progress_title)
 
         with col2:
             with st.container(border=True):
-                st.write("#### Commemorative")
-                st.progress(cc_percent, "Commemorative")
-                st.write(f"{cc_found} / {cc}")
+                title = get_stats_title("Commemorative", cc_found, cc)
+                st.write(title)
+                progress_title = f"{cc_found} / {cc} ({cc_percent:.2%})"
+                st.progress(cc_percent, text=progress_title)
 
         with col3:
             with st.container(border=True):
-                st.write("#### All")
-                st.progress(total_percent, "All")
-                st.write(f"{total_found} / {total}")
+                title = get_stats_title("Total", total_found, total)
+                st.write(title)
+                progress_title = f"{total_found} / {total} ({total_percent:.2%})"
+                st.progress(total_percent, progress_title)
 
 st.header("EuroCoins Catalog")
 
