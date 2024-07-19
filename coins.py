@@ -2,11 +2,15 @@ import streamlit as st
 import pandas as pd
 from itertools import islice
 import coinsutils as cu
+import random
+
+random_key = random.choice(list(cu.series_names.keys()))
 
 selected_user = None
 selected_type = None
 selected_country = None
-selected_series = None
+selected_series = random_key
+
 if 'user' in st.query_params:
     selected_user = st.query_params['user']
 if 'type' in st.query_params:
@@ -131,43 +135,12 @@ def display_coin_card(coin, current_user):
                     label = "Del :red[:heavy_minus_sign:]"
                     st.button(label, key=f"remove_{coin.id}", on_click=remove_coin, args=[coin.id, current_user])
 
-# ###
-# # Series container
-# ###
-# def series_head(series, name, series_coins_count, found_count):
-
-
-def generate_stats_data(df, name):
-    total_count = len(df)
-    total_re = len(df[df['type'] == 'RE'])
-    total_cc = len(df[df['type'] == 'CC'])
-
-    total_found = df['found'].sum()
-    total_percent = total_found / total_count if total_count != 0 else 0 
-    total_re_found = len(df[(df['type'] == 'RE') & (df['found'] == 1)])
-    total_re_percent = total_re_found / total_re if total_re != 0 else 0
-    total_cc_found = len(df[(df['type'] == 'CC') & (df['found'] == 1)])
-    total_cc_percent = total_cc_found / total_cc if total_cc != 0 else 0
-
-    return {
-        'name': name,
-        'regular_found': total_re_found,
-        'regular_percent': total_re_percent,
-        'regular': total_re,
-        'cc_found': total_cc_found,
-        'cc_percent': total_cc_percent,
-        'cc': total_cc,
-        'total_found': int(total_found),  
-        'total_percent': total_percent,
-        'total': total_count,
-    }
-
 def get_stats_title(name, found, total):
     if (found == total):
         return f"#### :white_check_mark: :green[{name}]"
     else:
         return f"#### :ballot_box_with_check: :red[{name}]"
-
+    
 ###
 # Country Stats card
 ###
@@ -300,33 +273,19 @@ elif user_filter == "Missing":
     coins_df = coins_df[coins_df['found'] == 0]
 
 
-# total stats
-total_stats_data = generate_stats_data(coins_df, ':flag-eu: Coins')
-sssdf = pd.DataFrame([total_stats_data])
-for data in sssdf.itertuples():
-    country_stats_card(data)    
-
+   
 ## statistics
 with st.expander(":bar_chart: Statistics"):
-    st.subheader("Countries statistics")
-    total_user_count = total_users
+    st.subheader("Statistics")
 
-    rows = []
-    # group by country stats
-    grouped_country = coins_df.groupby('country')
-    dfs = {country: group.reset_index(drop=True) for country, group in grouped_country}
-
-    for country, df_group in dfs.items():
-        flag_emoji = cu.flags.get(country, "")
-        name = f"{flag_emoji} {country}"
-        data = generate_stats_data(df_group, name)
-        rows.append(data)
-
-    stats_df = pd.DataFrame(rows)
-    # st.write(stats_df)
-
-    for data in stats_df.itertuples():
+    # total stats
+    total_stats_data = cu.generate_stats_data(coins_df, ':flag-eu: Coins')
+    sssdf = pd.DataFrame([total_stats_data])
+    for data in sssdf.itertuples():
         country_stats_card(data)
+
+    st.page_link('pages/statistics.py', label=':bar_chart: More Statistics')
+
 
 ## last added
 with st.expander(":calendar: Last added"):

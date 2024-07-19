@@ -240,3 +240,29 @@ def load_history(force=False):
 def save_history(history_df):
     history_df.to_csv(os.path.join(CACHE_DIR, HISTORY_FILENAME), index=False)
     upload_file_to_s3(os.path.join(CACHE_DIR, HISTORY_FILENAME), HISTORY_FILENAME)
+
+def generate_stats_data(df, name):
+    total_count = len(df)
+    total_re = len(df[df['type'] == 'RE'])
+    total_cc = len(df[df['type'] == 'CC'])
+
+    total_found = df['found'].sum()
+    total_percent = total_found / total_count if total_count != 0 else 0 
+    total_re_found = len(df[(df['type'] == 'RE') & (df['found'] == 1)])
+    total_re_percent = total_re_found / total_re if total_re != 0 else 0
+    total_cc_found = len(df[(df['type'] == 'CC') & (df['found'] == 1)])
+    total_cc_percent = total_cc_found / total_cc if total_cc != 0 else 0
+
+    return {
+        'name': name,
+        'regular_found': total_re_found,
+        'regular_percent': total_re_percent,
+        'regular': total_re,
+        'cc_found': total_cc_found,
+        'cc_percent': total_cc_percent,
+        'cc': total_cc,
+        'total_found': int(total_found),  
+        'total_percent': total_percent,
+        'total': total_count,
+    }
+
