@@ -259,6 +259,11 @@ with st.sidebar:
         if info_filter != "":
             coins_df = coins_df[coins_df['feature'].str.contains(info_filter, case=False, na=False)]
 
+    # group by 
+    with st.container(border=True):
+        group_by = st.selectbox("Group by", ["Value", "Country", "Series"], index=1)
+
+
     
 ## main content
 
@@ -339,7 +344,15 @@ with st.expander(":calendar: Last added"):
     st.page_link('pages/history.py', label=':calendar: Full History')
 
 # gouped by series
-grouped_series = coins_df.groupby('series')
+if group_by == "Value":
+    gby = 'value'
+elif group_by == "Country":
+    gby = 'country'
+elif group_by == "Series":
+    gby = 'series'
+else:
+    gby = 'country'
+grouped_series = coins_df.groupby(gby)
 dfs = {series: group.reset_index(drop=True) for series, group in grouped_series}
 
 for series, df_group in dfs.items():
