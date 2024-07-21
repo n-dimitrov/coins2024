@@ -9,7 +9,7 @@ random_key = random.choice(list(cu.series_names.keys()))
 selected_user = None
 selected_type = None
 selected_country = None
-selected_series = random_key
+selected_series = None
 
 if 'user' in st.query_params:
     selected_user = st.query_params['user']
@@ -64,9 +64,8 @@ def init_coins():
     history_df_grouped_id = history_sorted_df.groupby('id').agg({'name': lambda x: list(x)}).reset_index()
 
     history_df['date'] = pd.to_datetime(history_df['date'], errors='coerce')
-    history_df['date_only'] = history_df['date'].dt.date
+    history_df.loc[:, 'date_only'] = history_df['date'].dt.date
     
-
     coins_df = pd.DataFrame()
     coins_df = pd.merge(catalog_df, history_df_grouped_id, on='id', how='outer')
     coins_df['names'] = coins_df['name'].apply(lambda x: x if isinstance(x, list) else [])
@@ -119,21 +118,24 @@ def display_coin_card(coin, current_user):
         st.progress(pr)
         st.image(image)
         st.write(f"{value} / {year}")
-        expander = st.expander(f"Owners {owners_count}")
-        with expander:
+
+        pop = st.popover(f"Owners {owners_count}")
+        with pop:
+            # list of owners
             if owners_count > 0:
                 for name in owners_names:
                     if name == current_user:
                         name = f":green[{name}]"
                     st.write(name)
+            # add / remove button
             if current_user:
                 if own == 0:
-                    label = "Add :green[:heavy_plus_sign:]"
-                    st.button(label, key=f"add_{coin.id}", on_click=add_coin, args=[coin.id, current_user])
+                    label = f"{current_user} Add :green[:heavy_plus_sign:]"
+                    add_button = st.button(label, key=f"add_{coin.id}", on_click=add_coin, args=[coin.id, current_user])
                         
                 else:
-                    label = "Del :red[:heavy_minus_sign:]"
-                    st.button(label, key=f"remove_{coin.id}", on_click=remove_coin, args=[coin.id, current_user])
+                    label = f"{current_user} Remove :red[:heavy_minus_sign:]"
+                    remove_button = st.button(label, key=f"remove_{coin.id}", on_click=remove_coin, args=[coin.id, current_user])
 
 def get_stats_title(name, found, total):
     if (found == total):
@@ -272,8 +274,7 @@ if user_filter == "Found":
 elif user_filter == "Missing":
     coins_df = coins_df[coins_df['found'] == 0]
 
-
-   
+ 
 ## statistics
 with st.expander(":bar_chart: Statistics"):
     st.subheader("Statistics")
@@ -349,8 +350,8 @@ for series, df_group in dfs.items():
     series_procentage = found_count / series_coins_count
 
     series_title = get_stats_title(series_name, found_count, series_coins_count)
-    with st.container(border=True):    
-        st.markdown(series_title)
+
+    with st.expander(f"{series_title}"):    
         with st.container(border=True):
             c1, c2 = st.columns([1,8])
             c2.progress(series_procentage)
