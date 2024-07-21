@@ -10,6 +10,7 @@ selected_user = None
 selected_type = None
 selected_country = None
 selected_series = None
+selected_group_by = None
 
 if 'user' in st.query_params:
     selected_user = st.query_params['user']
@@ -19,6 +20,8 @@ if 'country' in st.query_params:
     selected_country = st.query_params['country']
 if 'series' in st.query_params:
     selected_series = st.query_params['series']
+if 'group' in st.query_params:
+    selected_group_by = st.query_params['group']
 
 def save_history(history_df):
     cu.save_history(history_df)
@@ -261,8 +264,17 @@ with st.sidebar:
 
     # group by 
     with st.container(border=True):
-        group_by = st.selectbox("Group by", ["Value", "Country", "Series"], index=1)
+        group_by_list = ["Value", "Country", "Series"]
 
+        selected_group_by_index = 1
+        if selected_group_by == "value":
+            selected_group_by_index = 0
+        elif selected_group_by == "country":
+            selected_group_by_index = 1
+        elif selected_group_by == "series":
+            selected_group_by_index = 2
+
+        group_by = st.selectbox("Group by", group_by_list, index=selected_group_by_index)
 
     
 ## main content
@@ -343,7 +355,7 @@ with st.expander(":calendar: Last added"):
 
     st.page_link('pages/history.py', label=':calendar: Full History')
 
-# gouped by series
+# gouped by 
 if group_by == "Value":
     gby = 'value'
 elif group_by == "Country":
