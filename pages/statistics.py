@@ -8,6 +8,8 @@ selected_user = None
 selected_type = None
 selected_country = None
 selected_series = None
+selected_group_by = None
+
 if 'user' in st.query_params:
     selected_user = st.query_params['user']
 if 'type' in st.query_params:
@@ -16,6 +18,8 @@ if 'country' in st.query_params:
     selected_country = st.query_params['country']
 if 'series' in st.query_params:
     selected_series = st.query_params['series']
+if 'group' in st.query_params:
+    selected_group_by = st.query_params['group']
 
 st.set_page_config(
     page_title="EuroCoins Statistics",
@@ -116,9 +120,12 @@ def country_stats_card(data):
 
 def get_stats_title(name, found, total):
     if (found == total):
-        return f"##### :white_check_mark: :green[{name}]"
+        if (total == 0):
+            return f"#### {name}"
+        else:
+            return f"#### :white_check_mark: :green[{name}]"
     else:
-        return f"##### :ballot_box_with_check: :red[{name}]"
+        return f"#### :ballot_box_with_check: :red[{name}]"
     
 def generate_rings_fig(re_found, re_total, cc_found, cc_total, total_found, total):
     data = [
@@ -231,6 +238,19 @@ with st.sidebar:
         if info_filter != "":
             coins_df = coins_df[coins_df['feature'].str.contains(info_filter, case=False, na=False)]
 
+    # group by 
+    with st.container(border=True):
+        group_by_list = ["Value", "Country", "Series"]
+
+        selected_group_by_index = 1
+        if selected_group_by == "value":
+            selected_group_by_index = 0
+        elif selected_group_by == "country":
+            selected_group_by_index = 1
+        elif selected_group_by == "series":
+            selected_group_by_index = 2
+
+        group_by = st.selectbox("Group by", group_by_list, index=selected_group_by_index)
 
 # main content
 coins_df = coins_df.sort_values(by=['country', 'value'])
@@ -247,16 +267,27 @@ sssdf = pd.DataFrame([total_stats_data])
 for data in sssdf.itertuples():
     country_stats_card(data)    
 
-st.subheader("Countries statistics")
+st.subheader("Detailed statistics")
 
 rows = []
-# group by country stats
-grouped_country = coins_df.groupby('country')
-dfs = {country: group.reset_index(drop=True) for country, group in grouped_country}
+# gouped by 
+if group_by == "Value":
+    gby = 'value'
+elif group_by == "Country":
+    gby = 'country'
+elif group_by == "Series":
+    gby = 'series'
+else:
+    gby = 'country'
+grouped_series = coins_df.groupby(gby)
+dfs = {country: group.reset_index(drop=True) for country, group in grouped_series}
 
-for country, df_group in dfs.items():
-    flag_emoji = cu.flags.get(country, "")
-    name = f"{flag_emoji} {country}"
+for group_title, df_group in dfs.items():
+    if (gby == "country"):
+        flag_emoji = cu.flags.get(group_title, "")
+        name = f"{flag_emoji} {group_title}"
+    else:
+        name = group_title
     data = cu.generate_stats_data(df_group, name)
     rows.append(data)
 

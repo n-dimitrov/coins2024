@@ -142,7 +142,10 @@ def display_coin_card(coin, current_user):
 
 def get_stats_title(name, found, total):
     if (found == total):
-        return f"#### :white_check_mark: :green[{name}]"
+        if (total == 0):
+            return f"#### {name}"
+        else:
+            return f"#### :white_check_mark: :green[{name}]"
     else:
         return f"#### :ballot_box_with_check: :red[{name}]"
     
