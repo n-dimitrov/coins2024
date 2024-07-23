@@ -64,7 +64,7 @@ def display_coin_card(coin, current_user):
                     st.write(name)
 
 
-st.title('Check the coin')
+st.title('AI Coin search')
 
 uploaded_file = st.file_uploader("Choose a coin image")
 if uploaded_file is not None:
@@ -78,8 +78,8 @@ if uploaded_file is not None:
 # """
     result = "{}"
 
-    if st.button('Check'):
-        with st.spinner('Checking...'):
+    if st.button('Search'):
+        with st.spinner('Analizying...'):
             client = OpenAI(api_key=open_ai_key)
 
             response = client.chat.completions.create(
@@ -110,12 +110,12 @@ if uploaded_file is not None:
             # st.write(response)
             result = response.choices[0].message.content
 
-            st.write("Result:")
+            st.write("Possible result:")
             st.info(result)
 
             json_result = json.loads(result)
 
-            with st.spinner('Searching...'):
+            with st.spinner('Searching in catatlog...'):
                 init_coins()
                 coins_df = st.session_state.coins_df
 
@@ -145,26 +145,7 @@ if uploaded_file is not None:
                     st.write("Description: ", description)
 
                 st.write("Matching coins: ", len(coins_df))
-                # frame = st.data_editor(
-                #     coins_df,
-                #     hide_index=True,
-                #     column_config={
-                #         "type": st.column_config.TextColumn(label="Type"),
-                #         "year": st.column_config.NumberColumn(label="Year", format="%d"),
-                #         "country": st.column_config.TextColumn(label="Country"),
-                #         "series": st.column_config.TextColumn(label="Series"),
-                #         "value": st.column_config.NumberColumn(label="Value", format="%.2f"),
-                #         "id": st.column_config.TextColumn(label="ID"),
-                #         "image": st.column_config.ImageColumn(label="Image"),
-                #         "feature": st.column_config.TextColumn(label="Feature"),
-                #         # "volume": st.column_config.TextColumn(label="Volume")
-                #     },
-                #     disabled=['volume'],
-                #     column_order=('type', 'year', 'country', 'series', 'value', 'image', 'feature', 'names'),
-                #     # width=1000,
-                #     )
                 
-                # iterate coins_df
                 for index, row in coins_df.iterrows():
                     display_coin_card(row, "-")
 
