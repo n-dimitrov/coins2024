@@ -122,7 +122,11 @@ def display_coin_card(coin, current_user):
         st.image(image)
         st.write(f"{value} / {year}")
 
-        pop = st.popover(f"Owners {owners_count}")
+        users_list = st.session_state.users_list
+        count_users = len(users_list)
+
+        pop_label = f"{owners_count} / {count_users}"
+        pop = st.popover(pop_label)
         with pop:
             # list of owners
             if owners_count > 0:
