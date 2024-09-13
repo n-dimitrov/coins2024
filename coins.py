@@ -250,18 +250,18 @@ with st.sidebar:
         if country_filter:
             coins_df = coins_df[coins_df['country'] == country]   
 
-    # series filter
-    with st.container(border=True):
-        series_list = sorted(coins_df['series'].unique())
+    # # series filter
+    # with st.container(border=True):
+    #     series_list = sorted(coins_df['series'].unique())
         
-        selected_series_index = series_list.index(selected_series) if selected_series in series_list else 0
-        series_filter_selected = selected_series in series_list
+    #     selected_series_index = series_list.index(selected_series) if selected_series in series_list else 0
+    #     series_filter_selected = selected_series in series_list
         
-        series_filter = st.checkbox("By series", value=series_filter_selected)
-        series = st.selectbox("Series", series_list, index=selected_series_index)
+    #     series_filter = st.checkbox("By series", value=series_filter_selected)
+    #     series = st.selectbox("Series", series_list, index=selected_series_index)
         
-        if series_filter:
-            coins_df = coins_df[coins_df['series'] == series]
+    #     if series_filter:
+    #         coins_df = coins_df[coins_df['series'] == series]
 
     # details filter
     with st.container(border=True):
@@ -362,15 +362,20 @@ with st.expander(":calendar: Last added"):
 
     st.page_link('pages/history.py', label=':calendar: Full History')
 
+# add new column with series name
+coins_df['series_name'] = coins_df['series'].apply(lambda x: cu.series_names_info.get(x, x))
+
 # gouped by 
 if group_by == "Value":
     gby = 'value'
 elif group_by == "Country":
     gby = 'country'
 elif group_by == "Series":
-    gby = 'series'
+    gby = 'series_name'
 else:
     gby = 'country'
+
+
 grouped_series = coins_df.groupby(gby)
 dfs = {series: group.reset_index(drop=True) for series, group in grouped_series}
 
@@ -378,7 +383,8 @@ for series, df_group in dfs.items():
     series_coins_count = len(df_group)
     df_group = df_group.sort_values(by=['country', 'value'])
     found_count = df_group['found'].sum()
-    series_name = cu.series_names_info.get(series, series)
+    # series_name = cu.series_names_info.get(series, series)
+    series_name = series
     series_procentage = found_count / series_coins_count
 
     series_title = get_stats_title(series_name, found_count, series_coins_count)

@@ -12,7 +12,7 @@ from pandas.api.types import (
 
 st.set_page_config(
     page_title="EuroCoins Catalog Admin",
-    # page_icon="🧊",
+    page_icon="🧊",
     layout="wide",
 )
 
