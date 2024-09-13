@@ -8,6 +8,8 @@ st.set_page_config(
     # layout="wide",
 )
 
+st.page_link("coins.py", label=":arrow_backward: Back")
+
 catalog_df = cu.load_catalog()
 history_df = cu.load_history()
 history_sorted_df = history_df.sort_values(by=['name','date'], ascending=True)

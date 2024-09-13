@@ -27,6 +27,8 @@ st.set_page_config(
     layout="wide",
 )
 
+st.page_link("coins.py", label=":arrow_backward: Back")
+
 def init_coins():
     if 'catalog_df' not in st.session_state:
          st.session_state.catalog_df = cu.load_catalog()
