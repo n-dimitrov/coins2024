@@ -95,6 +95,27 @@ def batched(iterable, n_cols):
     while batch := tuple(islice(it, n_cols)):
         yield batch
 
+def coin_progress_bar(coin):
+    ownership_percentage = 100 if coin.own == 1 else 0
+    bar_html = f"""
+    <div style='
+        width: 100%; 
+        background-color: #e0e0e0; 
+        border-radius: 25px;
+        overflow: hidden;
+        height: 8px;
+        margin-top: 10px;
+    '>
+        <div style='
+            width: {ownership_percentage}%; 
+            background-color: #1c83e1; 
+            height: 100%;
+        '></div>
+    </div>
+    <p style='margin-top: 5px;'></p>
+    """
+    return bar_html
+
 ###
 # Coin card
 ###
@@ -114,11 +135,10 @@ def display_coin_card(coin, current_user):
         flag_emoji = cu.flags.get(country, "")
 
         st.write(f"{flag_emoji} {country}")
-        pr = 0.0
-        if own == 1:
-            pr = 1.0
-
-        # st.progress(pr)
+        
+        bar_html = coin_progress_bar(coin)
+        st.markdown(bar_html, unsafe_allow_html=True)
+        
         st.image(image)
         st.write(f"{value} / {year}")
 
