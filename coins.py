@@ -118,7 +118,7 @@ def display_coin_card(coin, current_user):
         if own == 1:
             pr = 1.0
 
-        st.progress(pr)
+        # st.progress(pr)
         st.image(image)
         st.write(f"{value} / {year}")
 
